@@ -4,6 +4,15 @@ org: sachacortez
 service: serverless-image-app
 region: ${file(config.json):AWS_REGION}
 
+package:
+  individually: true
+  patterns:
+    - '!config.json'
+    - '!package.json'
+    - '!package-lock.json'
+    - '!serverless.yml'
+    - '!README.md'
+    - '!.gitignore'
 provider:
   name: aws
   runtime: nodejs20.x

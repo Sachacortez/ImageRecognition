@@ -2,6 +2,7 @@
 org: sachacortez
 # "service" is the name of this project. This will also be added to your AWS resource names.
 service: serverless-image-app
+region: ${file(config.json):AWS_REGION}
 
 provider:
   name: aws
@@ -9,7 +10,6 @@ provider:
   environment:
     BUCKET_NAME: ${file(config.json):S3_BUCKET} 
     TABLE_NAME: ${file(config.json):DYNAMODB_TABLE}
-    REGION: ${file(config.json):AWS_REGION}
   iamRoleStatements:
     - Effect: "Allow"
       Action:
@@ -25,3 +25,22 @@ functions:
       - httpApi:
           path: /
           method: get
+
+resources:
+  Resources:
+    UploadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.BUCKET_NAME}
+    ImageTagsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: image
+            AttributeType: S
+        KeySchema:
+          - AttributeName: image
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+          

@@ -1,0 +1,5 @@
+{
+    "S3_BUCKET": "zac-image-app-bucket",
+    "AWS_REGION": "us-east-1",
+    "DYNAMODB_TABLE": "ZacImageTags"
+}

@@ -2,45 +2,71 @@
 org: sachacortez
 # "service" is the name of this project. This will also be added to your AWS resource names.
 service: serverless-image-app
-region: ${file(config.json):AWS_REGION}
 
-package:
-  individually: true
-  patterns:
-    - '!config.json'
-    - '!package.json'
-    - '!package-lock.json'
-    - '!serverless.yml'
-    - '!README.md'
-    - '!.gitignore'
 provider:
   name: aws
   runtime: nodejs20.x
+  region: ${file(config.json):AWS_REGION}
   environment:
-    BUCKET_NAME: ${file(config.json):S3_BUCKET} 
+    BUCKET_NAME: ${file(config.json):S3_BUCKET}
     TABLE_NAME: ${file(config.json):DYNAMODB_TABLE}
+  
   iamRoleStatements:
     - Effect: "Allow"
       Action:
         - s3:*
-        - recognition:DetectLabels
+        - rekognition:DetectLabels
       Resource:
+        - arn:aws:s3:::${file(config.json):S3_BUCKET}
         - arn:aws:s3:::${file(config.json):S3_BUCKET}/*
-
+    - Effect: "Allow"
+      Action:
+        - rekognition:DetectLabels
+      Resource: "*"
+    - Effect: "Allow"
+      Action:
+        - dynamodb:PutItem
+      Resource: "*"
+package:
+  exclude:
+    - config.json
+    - package.json
+    - package-lock.json
+    - README.md
+    - .gitignore
+    - .serverless/**
 functions:
-  hello:
-    handler: handler.hello
+  sachaGetSignedUrl:
+    handler: src/handler.getSignedUrl
     events:
       - httpApi:
-          path: /
+          path: /signed-url
           method: get
-
+  recognizeImage:
+    handler: src/recognition.processImage
+    events:
+      - s3:
+          bucket: ${self:provider.environment.BUCKET_NAME}
+          event: s3:ObjectCreated:Put
+          existing: true
 resources:
   Resources:
     UploadBucket:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:provider.environment.BUCKET_NAME}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - PUT
+                - POST
+                - GET 
+                - DELETE
+              AllowedOrigins:
+                - "*"
+              AllowedHeaders:
+                - "*"
+              MaxAge: 3000
     ImageTagsTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -52,4 +78,3 @@ resources:
           - AttributeName: image
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
-          
